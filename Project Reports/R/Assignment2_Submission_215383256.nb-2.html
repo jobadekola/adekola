@@ -1,0 +1,1692 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html><head><!-- Google Tag Manager --><script>window.dataLayer = window.dataLayer || [];window.dataLayer.push({'cmsType' : 'D2L'});</script><script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='//www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-N3CB');</script><!-- End Google Tag Manager --></head><body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="container-fluid main-container">
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="fluid-row">
+
+<div class="btn-group pull-right">
+<span>Code</span> <span class="caret"></span>
+<ul class="dropdown-menu" style="min-width: 50px;">
+<li><a rel="noopener" href="#">Show All Code</a></li>
+<li><a rel="noopener" href="#">Hide All Code</a></li>
+<li class="divider"></li>
+<li><a rel="noopener" href="#">Download Rmd</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Assignment 2</h1>
+
+</div>
+
+
+
+<p>This is an <a rel="noopener" href="http://rmarkdown.rstudio.com">R Markdown</a> Notebook. When you execute code within the notebook, the results appear beneath the code.</p>
+<p>Try executing this chunk by clicking the <em>Run</em> button within the chunk or by placing your cursor inside it and pressing <em>Cmd+Shift+Enter</em>.</p>
+
+
+
+<pre class="r"><code># Read in the ED Demands data into R
+Transformed.EDdata &lt;- read.csv(file=&quot;/Users/oluwatade/Documents/Deakin Trimester 1 2017/Statistical Data Analysis/govhack3.csv&quot;, header=TRUE) 
+Transformed.EDdata$Date&lt;-as.Date(Transformed.EDdata$Date)</code></pre>
+
+
+
+
+
+
+<pre class="r"><code>library(devtools)
+library(rnoaa)
+library(ggplot2)
+library(Hmisc)
+#Converting Fahreheits to Celsius by Creating Functions
+fahr_to_kelvin &lt;- function(temp) {
+  #Converts Fahrenheit to Kelvin
+  kelvin &lt;- ((temp - 32) * (5/9)) + 273.15
+  kelvin
+}
+kelvin_to_celsius &lt;- function(temp) {
+  #Converts Kelvin to Celsius
+  celsius &lt;- temp - 273.15
+  celsius
+}
+fahr_to_celsius &lt;- function(temp) {
+  #Converts Fahrenheit to Celsius using fahr_to_kelvin() and kelvin_to_celsius()
+  temp_k &lt;- fahr_to_kelvin(temp)
+  result &lt;- kelvin_to_celsius(temp_k)
+  result
+}</code></pre>
+
+
+
+
+<pre class="r"><code>library(devtools)
+library(rnoaa)
+library(ggplot2)
+library(Hmisc)
+# API keys - authentication 
+TempMin &lt;-ncdc(datasetid = &quot;GHCND&quot;, datatypeid = &quot;TMIN&quot;, stationid = &quot;GHCND:ASN00009225&quot;,
+            limit = 365, token = &quot;DjYTUMIRRyBJdEbRfUuBsrMNllniUnan&quot;, startdate = &quot;2013-07-01&quot;, enddate = &quot;2014-06-30&quot;)$data
+TempMax &lt;-ncdc(datasetid = &quot;GHCND&quot;, datatypeid = &quot;TMAX&quot;, stationid = &quot;GHCND:ASN00009225&quot;,
+                 limit = 365, token = &quot;DjYTUMIRRyBJdEbRfUuBsrMNllniUnan&quot;, startdate = &quot;2013-07-01&quot;, enddate = &quot;2014-06-30&quot;)$data
+Transformed.EDdata$TempMin&lt;-(TempMin$value)/10
+Transformed.EDdata$TempMax&lt;-(TempMax$value)/10
+Transformed.EDdata$AveragePrecip&lt;-Precip$value
+#Create variables of weeks
+library (zoo)
+Transformed.EDdata$Month &lt;- as.Date(cut(as.Date(Transformed.EDdata$Date),
+                                        breaks = &quot;month&quot;))
+#Transformed.EDdata$Quarter &lt;- as.Date(cut(as.Date(Transformed.EDdata$Date),breaks = &quot;quarter&quot;))
+Transformed.EDdata$Week &lt;- as.Date(cut(as.Date(Transformed.EDdata$Date),
+                                       breaks = &quot;week&quot;,
+                                       start.on.monday = FALSE)) # changes weekly break point to Sunday
+describe(Transformed.EDdata)</code></pre>
+
+
+<pre><code>Transformed.EDdata 
+
+ 69  Variables      365  Observations
+--------------------------------------------------------------------------------------------
+Date 
+       n  missing distinct 
+     365        0      365 
+
+lowest : 2013-07-01 2013-07-02 2013-07-03 2013-07-04 2013-07-05
+highest: 2014-06-26 2014-06-27 2014-06-28 2014-06-29 2014-06-30
+--------------------------------------------------------------------------------------------
+Royal.Perth_Attendance 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       78        1      227     19.6      199      205      215      227 
+     .75      .90      .95 
+     239      249      254 
+
+lowest : 179 183 185 191 192, highest: 265 267 269 270 275
+--------------------------------------------------------------------------------------------
+Royal.Perth_Admissions 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       58    0.999    96.24    14.07       77       80       88       96 
+     .75      .90      .95 
+     105      113      116 
+
+lowest :  37  68  69  70  71, highest: 122 123 124 125 131
+--------------------------------------------------------------------------------------------
+Royal.Perth_Tri_1 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     285       80       10    0.962    5.046    2.102        3        3        3        5 
+     .75      .90      .95 
+       6        8        9 
+                                                                      
+Value          3     4     5     6     7     8     9    10    12    15
+Frequency     73    60    61    34    23    18     7     6     1     2
+Proportion 0.256 0.211 0.214 0.119 0.081 0.063 0.025 0.021 0.004 0.007
+--------------------------------------------------------------------------------------------
+Royal.Perth_Tri_2 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       41    0.998    35.65    8.222       25       27       30       35 
+     .75      .90      .95 
+      40       46       48 
+
+lowest : 12 18 19 20 21, highest: 55 56 57 58 59
+--------------------------------------------------------------------------------------------
+Royal.Perth_Tri_3 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       58    0.999    81.11    13.05       64       67       73       80 
+     .75      .90      .95 
+      88       97      100 
+
+lowest :  40  48  51  53  57, highest: 106 107 108 112 113
+--------------------------------------------------------------------------------------------
+Royal.Perth_Tri_4 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       67    0.999    89.45    16.15       67       71       80       88 
+     .75      .90      .95 
+     101      107      115 
+
+lowest :  53  57  59  61  62, highest: 122 124 125 128 129
+--------------------------------------------------------------------------------------------
+Royal.Perth_Tri_5 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     364        1       32    0.998    16.25    7.343        7        8       11       16 
+     .75      .90      .95 
+      20       25       28 
+
+lowest :  4  5  6  7  8, highest: 31 32 33 34 37
+--------------------------------------------------------------------------------------------
+Fremantle_Attendance 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       68    0.999    158.9    16.63      135      140      148      159 
+     .75      .90      .95 
+     169      178      184 
+
+lowest : 118 125 126 128 129, highest: 193 194 196 197 198
+--------------------------------------------------------------------------------------------
+Fremantle_Admissions 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       42    0.998    65.22    9.164       52       55       59       65 
+     .75      .90      .95 
+      71       75       78 
+
+lowest : 43 45 46 47 48, highest: 82 83 84 87 89
+--------------------------------------------------------------------------------------------
+Fremantle_Tri_1 
+       n  missing distinct     Info     Mean      Gmd 
+      78      287        4    0.687    3.436   0.6454 
+                                  
+Value          3     4     5     7
+Frequency     52    20     5     1
+Proportion 0.667 0.256 0.064 0.013
+--------------------------------------------------------------------------------------------
+Fremantle_Tri_2 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       30    0.997    27.75    6.404       19       20       24       27 
+     .75      .90      .95 
+      31       35       38 
+
+lowest : 15 16 17 18 19, highest: 40 41 42 43 45
+--------------------------------------------------------------------------------------------
+Fremantle_Tri_3 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       44    0.999    57.66    9.786     43.0     47.4     52.0     58.0 
+     .75      .90      .95 
+    64.0     69.0     72.0 
+
+lowest : 34 36 37 38 40, highest: 75 78 80 82 83
+--------------------------------------------------------------------------------------------
+Fremantle_Tri_4 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       50    0.999    56.49    11.16       41       44       49       56 
+     .75      .90      .95 
+      63       69       73 
+
+lowest : 31 32 35 37 38, highest: 79 80 82 85 86
+--------------------------------------------------------------------------------------------
+Fremantle_Tri_5 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       33    0.997    15.38    6.995      6.2      8.0     11.0     14.0 
+     .75      .90      .95 
+    19.0     24.0     27.0 
+
+lowest :  3  4  5  6  7, highest: 31 32 33 34 37
+--------------------------------------------------------------------------------------------
+Princess.Margaret_Attendance 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0      107        1    194.8    27.71    158.2    164.4    178.0    194.0 
+     .75      .90      .95 
+   210.0    226.6    238.0 
+
+lowest : 132 133 140 141 144, highest: 256 258 261 276 280
+--------------------------------------------------------------------------------------------
+Princess.Margaret_Admissions 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       36    0.998    33.49    7.748     23.0     25.0     29.0     33.0 
+     .75      .90      .95 
+    38.0     42.6     45.0 
+
+lowest : 16 17 19 20 21, highest: 48 49 50 53 59
+--------------------------------------------------------------------------------------------
+Princess.Margaret_Tri_1 
+       n  missing distinct     Info     Mean      Gmd 
+      23      342        3    0.747    3.478    0.664 
+                            
+Value          3     4     5
+Frequency     14     7     2
+Proportion 0.609 0.304 0.087
+--------------------------------------------------------------------------------------------
+Princess.Margaret_Tri_2 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     358        7       17     0.99    8.047    3.637        4        4        6        8 
+     .75      .90      .95 
+      10       12       14 
+                                                                                        
+Value          3     4     5     6     7     8     9    10    11    12    13    14    15
+Frequency     16    33    38    50    34    41    35    27    37    14    10    11     3
+Proportion 0.045 0.092 0.106 0.140 0.095 0.115 0.098 0.075 0.103 0.039 0.028 0.031 0.008
+                                  
+Value         16    17    18    21
+Frequency      4     1     3     1
+Proportion 0.011 0.003 0.008 0.003
+--------------------------------------------------------------------------------------------
+Princess.Margaret_Tri_3 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       51    0.999    49.27    11.54     33.0     36.4     42.0     49.0 
+     .75      .90      .95 
+    56.0     63.0     66.8 
+
+lowest : 25 27 28 29 30, highest: 72 74 75 76 80
+--------------------------------------------------------------------------------------------
+Princess.Margaret_Tri_4 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       83        1      134    21.19    105.2    112.0    120.0    133.0 
+     .75      .90      .95 
+   146.0    157.0    167.6 
+
+lowest :  86  89  93  95  97, highest: 182 183 184 187 211
+--------------------------------------------------------------------------------------------
+Princess.Margaret_Tri_5 
+       n  missing distinct     Info     Mean      Gmd 
+     186      179        7    0.909    4.177    1.366 
+                                                    
+Value          3     4     5     6     7     8    10
+Frequency     72    57    29    15     8     4     1
+Proportion 0.387 0.306 0.156 0.081 0.043 0.022 0.005
+--------------------------------------------------------------------------------------------
+King.Edward_Attendance 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       46    0.999    39.56    10.64       24       26       32       41 
+     .75      .90      .95 
+      46       51       54 
+
+lowest : 17 19 20 21 22, highest: 59 60 61 63 64
+--------------------------------------------------------------------------------------------
+King.Edward_Admissions 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     279       86       11    0.954     4.91    1.851      3.0      3.0      4.0      5.0 
+     .75      .90      .95 
+     6.0      7.0      8.1 
+                                                                            
+Value          3     4     5     6     7     8     9    10    11    12    13
+Frequency     61    73    70    32    18    11     7     4     1     1     1
+Proportion 0.219 0.262 0.251 0.115 0.065 0.039 0.025 0.014 0.004 0.004 0.004
+--------------------------------------------------------------------------------------------
+King.Edward_Tri_2 
+       n  missing distinct     Info     Mean      Gmd 
+       1      364        1        0        3       NA 
+            
+Value      3
+Frequency  1
+Proportion 1
+--------------------------------------------------------------------------------------------
+King.Edward_Tri_3 
+       n  missing distinct     Info     Mean      Gmd 
+     280       85        9    0.962    5.025     2.06 
+                                                                
+Value          3     4     5     6     7     8     9    10    11
+Frequency     74    57    55    38    19    21     9     5     2
+Proportion 0.264 0.204 0.196 0.136 0.068 0.075 0.032 0.018 0.007
+--------------------------------------------------------------------------------------------
+King.Edward_Tri_4 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       27    0.996    19.96    5.933       12       13       16       20 
+     .75      .90      .95 
+      23       27       29 
+
+lowest :  7  9 10 11 12, highest: 30 32 33 34 36
+--------------------------------------------------------------------------------------------
+King.Edward_Tri_5 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     362        3       31    0.998    15.23    7.786        5        6       10       16 
+     .75      .90      .95 
+      20       24       26 
+
+lowest :  3  4  5  6  7, highest: 29 30 31 32 34
+--------------------------------------------------------------------------------------------
+Sir.Charles_Attendance 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       76    0.999    180.5    17.68    157.2    162.0    169.0    180.0 
+     .75      .90      .95 
+   190.0    200.6    207.0 
+
+lowest : 138 140 144 147 148, highest: 220 222 225 227 237
+--------------------------------------------------------------------------------------------
+Sir.Charles_Admissions 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       71    0.999    107.9    16.73     83.2     90.0     99.0    107.0 
+     .75      .90      .95 
+   117.0    129.0    134.8 
+
+lowest :  65  69  72  75  76, highest: 140 141 143 147 150
+--------------------------------------------------------------------------------------------
+Sir.Charles_Tri_1 
+       n  missing distinct     Info     Mean      Gmd 
+     190      175        7    0.898    4.121    1.356 
+                                                    
+Value          3     4     5     6     7     8     9
+Frequency     82    49    30    18     7     2     2
+Proportion 0.432 0.258 0.158 0.095 0.037 0.011 0.011
+--------------------------------------------------------------------------------------------
+Sir.Charles_Tri_2 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       38    0.998    43.06    8.419       32       34       38       42 
+     .75      .90      .95 
+      48       53       56 
+
+lowest : 23 28 29 30 31, highest: 60 61 62 63 64
+--------------------------------------------------------------------------------------------
+Tri_3 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       61    0.999    84.04    13.37     66.0     70.0     76.0     83.0 
+     .75      .90      .95 
+    92.0     98.6    106.0 
+
+lowest :  53  54  55  56  57, highest: 112 114 115 122 125
+--------------------------------------------------------------------------------------------
+Tri_4 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       47    0.999    46.37    11.32     31.0     34.0     39.0     46.0 
+     .75      .90      .95 
+    53.0     59.6     63.8 
+
+lowest : 25 26 27 28 29, highest: 68 70 73 76 78
+--------------------------------------------------------------------------------------------
+Tri_5 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     255      110       13    0.971    5.463    2.437      3.0      3.0      4.0      5.0 
+     .75      .90      .95 
+     7.0      8.6      9.0 
+                                                                                        
+Value          3     4     5     6     7     8     9    10    11    12    14    16    18
+Frequency     55    45    53    37    25    14    14     3     4     1     2     1     1
+Proportion 0.216 0.176 0.208 0.145 0.098 0.055 0.055 0.012 0.016 0.004 0.008 0.004 0.004
+--------------------------------------------------------------------------------------------
+Armadale.Kelmscott_Attendance 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       83        1    168.5    20.62    141.2    145.0    156.0    167.0 
+     .75      .90      .95 
+   179.0    194.2    202.0 
+
+lowest : 124 125 126 128 130, highest: 218 219 220 221 222
+--------------------------------------------------------------------------------------------
+Armadale.Kelmscott_Admissions 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       28    0.996    20.81    5.672       13       14       17       21 
+     .75      .90      .95 
+      24       27       29 
+
+lowest :  9 10 11 12 13, highest: 32 33 34 35 36
+--------------------------------------------------------------------------------------------
+Armadale.Kelmscott_Tri_1 
+       n  missing distinct     Info     Mean      Gmd 
+      22      343        3    0.249    3.136   0.2641 
+                            
+Value          3     4     5
+Frequency     20     1     1
+Proportion 0.909 0.045 0.045
+--------------------------------------------------------------------------------------------
+Armadale.Kelmscott_Tri_2 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       27    0.996    22.31    5.747       15       16       19       22 
+     .75      .90      .95 
+      26       29       31 
+
+lowest : 10 11 12 13 14, highest: 32 33 34 35 40
+--------------------------------------------------------------------------------------------
+Armadale.Kelmscott_Tri_3 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       51    0.999    64.33    11.61     48.0     50.0     58.0     64.0 
+     .75      .90      .95 
+    71.0     77.0     80.8 
+
+lowest :  35  39  45  46  47, highest:  89  91  92  96 100
+--------------------------------------------------------------------------------------------
+Armadale.Kelmscott_Tri_4 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       59    0.999     69.9    14.91     50.0     54.4     60.0     69.0 
+     .75      .90      .95 
+    79.0     89.0     93.0 
+
+lowest :  39  42  43  44  45, highest:  99 100 105 107 109
+--------------------------------------------------------------------------------------------
+Armadale.Kelmscott_Tri_5 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     352       13       30    0.996    11.49    6.361        4        5        7       10 
+     .75      .90      .95 
+      14       19       23 
+
+lowest :  3  4  5  6  7, highest: 29 30 32 34 49
+--------------------------------------------------------------------------------------------
+Swan.District_Attendance 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       64    0.999    129.7    14.92    108.2    113.4    121.0    130.0 
+     .75      .90      .95 
+   138.0    147.0    153.0 
+
+lowest :  81  95  96 101 102, highest: 158 159 161 164 165
+--------------------------------------------------------------------------------------------
+Swan.District_Admissions 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       37    0.998    24.64    7.659       13       16       20       25 
+     .75      .90      .95 
+      29       33       35 
+
+lowest :  5  7  8  9 10, highest: 38 39 40 42 44
+--------------------------------------------------------------------------------------------
+Swan.District_Tri_1 
+       n  missing distinct     Info     Mean      Gmd 
+      34      331        2    0.491    3.206   0.3369 
+                      
+Value          3     4
+Frequency     27     7
+Proportion 0.794 0.206
+--------------------------------------------------------------------------------------------
+Swan.District_Tri_2 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       29    0.997    22.01    5.981       14       15       18       22 
+     .75      .90      .95 
+      25       29       31 
+
+lowest :  8  9 10 11 12, highest: 32 33 34 35 36
+--------------------------------------------------------------------------------------------
+Swan.District_Tri_3 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       47    0.999    49.74    9.907     37.0     39.0     44.0     50.0 
+     .75      .90      .95 
+    56.0     61.0     63.8 
+
+lowest : 26 29 30 31 32, highest: 71 72 75 78 80
+--------------------------------------------------------------------------------------------
+Swan.District_Tri_4 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       50    0.999    49.35     10.9       34       37       43       49 
+     .75      .90      .95 
+      55       62       66 
+
+lowest : 26 27 28 30 32, highest: 74 75 77 78 82
+--------------------------------------------------------------------------------------------
+Swan.District_Tri_5 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     332       33       21     0.99    8.166    4.268        3        4        5        7 
+     .75      .90      .95 
+      10       14       16 
+
+lowest :  3  4  5  6  7, highest: 19 20 21 22 28
+--------------------------------------------------------------------------------------------
+RockinghamGH_Attendance 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       63    0.999    144.7    15.55    123.0    127.0    135.0    144.0 
+     .75      .90      .95 
+   154.0    162.0    167.8 
+
+lowest : 110 113 114 117 118, highest: 174 177 178 179 182
+--------------------------------------------------------------------------------------------
+RockinghamGH_Admissions 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     364        1       27    0.996    15.89    5.832     8.00     9.00    12.00    16.00 
+     .75      .90      .95 
+   19.25    23.00    24.00 
+
+lowest :  4  5  6  7  8, highest: 26 27 29 30 31
+--------------------------------------------------------------------------------------------
+RockinghamGH_Tri_1 
+       n  missing distinct     Info     Mean      Gmd 
+      10      355        2    0.485      3.2   0.3556 
+                  
+Value        3   4
+Frequency    8   2
+Proportion 0.8 0.2
+--------------------------------------------------------------------------------------------
+RockinghamGH_Tri_2 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       25    0.995    16.81    4.779       11       12       14       17 
+     .75      .90      .95 
+      20       22       24 
+
+lowest :  7  8  9 10 11, highest: 27 28 29 30 32
+--------------------------------------------------------------------------------------------
+RockinghamGH_Tri_3 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       44    0.999    49.71    10.21     35.0     37.4     44.0     49.0 
+     .75      .90      .95 
+    56.0     61.0     65.8 
+
+lowest : 26 30 32 33 34, highest: 72 73 75 79 80
+--------------------------------------------------------------------------------------------
+RockinghamGH_Tri_4 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       55    0.999    71.42    12.57       54       57       64       71 
+     .75      .90      .95 
+      79       86       90 
+
+lowest : 42 43 45 48 49, highest: 95 96 97 98 99
+--------------------------------------------------------------------------------------------
+RockinghamGH_Tri_5 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     302       63       21    0.987    6.997    3.995        3        3        4        6 
+     .75      .90      .95 
+       9       11       14 
+
+lowest :  3  4  5  6  7, highest: 20 21 22 23 27
+--------------------------------------------------------------------------------------------
+Joondalup_Attendance 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       94        1    256.8    24.92    224.0    231.0    241.0    254.0 
+     .75      .90      .95 
+   271.0    286.6    295.0 
+
+lowest : 201 203 207 209 210, highest: 305 309 315 318 323
+--------------------------------------------------------------------------------------------
+Joondalup_Admissions 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       41    0.998     73.3    9.343     60.2     63.0     68.0     73.0 
+     .75      .90      .95 
+    79.0     84.0     88.0 
+
+lowest : 51 52 53 54 55, highest: 89 90 91 92 96
+--------------------------------------------------------------------------------------------
+Joondalup_Tri_1 
+       n  missing distinct     Info     Mean      Gmd 
+      43      322        5    0.711    3.535   0.8128 
+                                        
+Value          3     4     5     6     7
+Frequency     28    10     3     1     1
+Proportion 0.651 0.233 0.070 0.023 0.023
+--------------------------------------------------------------------------------------------
+Joondalup_Tri_2 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       32    0.997    30.58    6.731       21       23       27       30 
+     .75      .90      .95 
+      35       39       41 
+
+lowest : 16 17 18 19 20, highest: 43 44 45 47 50
+--------------------------------------------------------------------------------------------
+Joondalup_Tri_3 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       61    0.999    90.84    15.57       70       73       81       90 
+     .75      .90      .95 
+     100      110      115 
+
+lowest :  59  62  64  65  66, highest: 118 119 120 122 124
+--------------------------------------------------------------------------------------------
+Joondalup_Tri_4 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       86        1    126.9    20.72     97.2    102.4    116.0    127.0 
+     .75      .90      .95 
+   138.0    151.0    159.0 
+
+lowest :  75  81  82  84  85, highest: 171 172 174 181 182
+--------------------------------------------------------------------------------------------
+Joondalup_Tri_5 
+       n  missing distinct 
+     365        0      165 
+
+lowest : 10                                                                                                                                                                                                                                                                                                        10                                                                                                                                                                                                                                                                                                        10                                                                                                                                                                                                                                                                                                        10                                                                                                                                                                                                                                                                                                        10                                                                                                                                                                                                                                                                                                       
+highest: NA                                                                                                                                                                                                                                                                                                        NA                                                                                                                                                                                                                                                                                                        NA                                                                                                                                                                                                                                                                                                        NA                                                                                                                                                                                                                                                                                                        NA                                                                                                                                                                                                                                                                                                       
+--------------------------------------------------------------------------------------------
+TempMin 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0      166        1    13.58    5.582     4.14     6.54    10.40    14.20 
+     .75      .90      .95 
+   17.00    19.66    20.78 
+
+lowest :  1.4  1.5  1.9  2.0  2.1, highest: 23.2 23.5 23.8 24.6 29.7
+--------------------------------------------------------------------------------------------
+TempMax 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0      176        1    25.47    6.958     17.3     18.6     20.5     24.0 
+     .75      .90      .95 
+    30.2     34.2     37.1 
+
+lowest : 14.6 15.0 15.6 16.2 16.3, highest: 39.0 39.1 40.4 41.0 43.3
+--------------------------------------------------------------------------------------------
+AveragePrecip 
+       n  missing distinct     Info     Mean      Gmd      .05      .10      .25      .50 
+     365        0       57    0.663    21.37    38.03      0.0      0.0      0.0      0.0 
+     .75      .90      .95 
+     4.0     76.4    127.6 
+
+lowest :   0   2   4   6   8, highest: 346 386 454 472 506
+--------------------------------------------------------------------------------------------
+Month 
+       n  missing distinct 
+     365        0       12 
+                                                                                       
+Value      2013-07-01 2013-08-01 2013-09-01 2013-10-01 2013-11-01 2013-12-01 2014-01-01
+Frequency          31         31         30         31         30         31         31
+Proportion      0.085      0.085      0.082      0.085      0.082      0.085      0.085
+                                                                 
+Value      2014-02-01 2014-03-01 2014-04-01 2014-05-01 2014-06-01
+Frequency          28         31         30         31         30
+Proportion      0.077      0.085      0.082      0.085      0.082
+--------------------------------------------------------------------------------------------
+Week 
+       n  missing distinct 
+     365        0       53 
+
+lowest : 2013-06-30 2013-07-07 2013-07-14 2013-07-21 2013-07-28
+highest: 2014-06-01 2014-06-08 2014-06-15 2014-06-22 2014-06-29
+--------------------------------------------------------------------------------------------
+
+Variables with all observations missing:
+
+[1] King.Edward_Tri_1</code></pre>
+
+
+
+
+
+
+<pre class="r"><code>admissiondf &lt;- tibble(Date= Transformed.EDdata$Date, Royal.Perth_Attendance=Transformed.EDdata$Royal.Perth_Attendance,Royal.Perth_Admissions=Transformed.EDdata$Royal.Perth_Admissions,Fremantle_Attendance=Transformed.EDdata$Fremantle_Attendance,
+                      Fremantle_Admissions=Transformed.EDdata$Fremantle_Admissions,Princess.Margaret_Attendance=Transformed.EDdata$Princess.Margaret_Attendance,
+                      Princess.Margaret_Admissions=Transformed.EDdata$Princess.Margaret_Admissions,King.Edward_Attendance=Transformed.EDdata$King.Edward_Attendance,King.Edward_Admissions=Transformed.EDdata$King.Edward_Admissions,
+                      Sir.Charles_Attendance=Transformed.EDdata$Sir.Charles_Attendance,Sir.Charles_Admissions=Transformed.EDdata$Sir.Charles_Admissions,Armadale.Kelmscott_Attendance=Transformed.EDdata$Armadale.Kelmscott_Attendance,
+                      Armadale.Kelmscott_Admissions=Transformed.EDdata$Armadale.Kelmscott_Admissions,Swan.District_Attendance=Transformed.EDdata$Swan.District_Attendance,Swan.District_Admissions=Transformed.EDdata$Swan.District_Admissions,
+                      RockinghamGH_Attendance=Transformed.EDdata$RockinghamGH_Attendance,RockinghamGH_Admissions=Transformed.EDdata$RockinghamGH_Admissions, Joondalup_Attendance=Transformed.EDdata$Joondalup_Attendance,Joondalup_Admissions=Transformed.EDdata$Joondalup_Admissions)
+admissiondf$Total_Attendances &lt;-rowSums(admissiondf [c(2,4,6,8,10,12,14,16,18)])
+admissiondf$Total_Admissions &lt;-rowSums(admissiondf [,c(3,5,7,9,11,13,15,17,19)])
+## Randomly Pick a variable
+timeseries&lt;- data.frame(Date= Transformed.EDdata$Date,Total_Attendances=admissiondf$Total_Attendances, Month= Transformed.EDdata$Month, TMAX=Transformed.EDdata$TempMax, TMIN=Transformed.EDdata$TempMin) </code></pre>
+
+
+
+
+
+
+<pre class="r"><code>library(MASS)
+library(mgcv) 
+library(ggplot2)
+library(tidyverse)
+library(gapminder)
+tmodel&lt;-lm(Total_Attendances~as.Date(Date), data=timeseries)
+library(mosaic)
+plotModel(tmodel, system = &quot;g&quot;)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+
+
+<pre class="r"><code>### Plot for Fitted Values and Residuals
+library(broom)
+tmodel_df &lt;- augment(tmodel)
+tmodel_df</code></pre>
+
+
+<div>
+
+</div>
+
+
+<pre class="r"><code>### First, we plot Date vs Residual and try to see the model fit
+tmodel_df %&gt;% 
+  ggplot(aes(x =as.Date.Date., y = .resid)) + 
+  geom_hline(yintercept = 0, colour = &quot;steelblue&quot;) +
+  geom_point()</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+
+
+<pre class="r"><code>tmodel_df %&gt;% 
+  
+  ## Then we plot the fitted vs Residual and compare with the model above
+  ggplot(aes(x = .fitted, y = .resid)) + 
+  geom_hline(yintercept = 0, colour = &quot;steelblue&quot;) +
+  geom_point()</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+<pre class="r"><code>## Using Geom_Point and Geom_Smoothe, we plot our fitted vs Residual 
+tmodel_df %&gt;% 
+  ggplot(aes(x = .fitted, y = .resid)) + 
+  geom_hline(yintercept = 0, colour = &quot;steelblue&quot;) +
+  geom_point() +
+  geom_smooth(se = FALSE)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+<pre class="r"><code>tmodel_df %&gt;% 
+  ggplot(aes(sample = .std.resid)) +
+  stat_qq() +
+  geom_abline(colour = &quot;steelblue&quot;)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+<div>
+
+</div>
+
+
+
+
+<pre class="r"><code>### GAM Model
+library(mgcv)
+library(timeDate)
+library(lubridate)
+model_gam1 &lt;- gam( Total_Attendances ~s(as.numeric(Date)), data = timeseries) 
+plotModel(model_gam1)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+<pre class="r"><code>gam.check(model_gam1)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 8 iterations.
+The RMS GCV score gradient at convergence was 0.000901101 .
+The Hessian was positive definite.
+Model rank =  10 / 10 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+                       k&#39;   edf k-index p-value
+s(as.numeric(Date)) 9.000 7.236   0.564       0</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+
+
+<pre class="r"><code># Incorporate weekly Seasonality
+weekly&lt;- timeseries %&gt;% 
+mutate(wkday = factor(wday(Date, label = TRUE), ordered = FALSE), 
+                      date_n = as.numeric(Date))
+       
+model_gam2 &lt;- gam( Total_Attendances ~ s(date_n) + wkday, data = weekly) 
+plotModel(model_gam2)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+<pre class="r"><code>model_gam3 &lt;- gam(Total_Attendances ~ s(date_n, by = wkday) + wkday, data = weekly) 
+plotModel(model_gam3)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+
+
+<pre class="r"><code># Function to visualize fitted
+library(zoo)
+library(mgcv)
+## Compare Models using AIC
+AIC(model_gam1,model_gam2,model_gam3)</code></pre>
+
+
+<div>
+
+</div>
+
+
+<pre class="r"><code>gam.check(model_gam1)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 8 iterations.
+The RMS GCV score gradient at convergence was 0.000901101 .
+The Hessian was positive definite.
+Model rank =  10 / 10 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+                       k&#39;   edf k-index p-value
+s(as.numeric(Date)) 9.000 7.236   0.564       0</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre class="r"><code>gam.check(model_gam2)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 13 iterations.
+The RMS GCV score gradient at convergence was 0.0003449381 .
+The Hessian was positive definite.
+Model rank =  17 / 17 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+                    k&#39; edf k-index p-value
+s(as.numeric(Date))  9   1      NA      NA</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre class="r"><code>gam.check(model_gam3)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 18 iterations.
+The RMS GCV score gradient at convergence was 9.895046e-05 .
+The Hessian was positive definite.
+Model rank =  70 / 70 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+                        k&#39;   edf k-index p-value
+s(date_n):wkdaySun   9.000 8.161   0.564       0
+s(date_n):wkdayMon   9.000 3.441   0.564       0
+s(date_n):wkdayTues  9.000 2.412   0.564       0
+s(date_n):wkdayWed   9.000 2.548   0.564       0
+s(date_n):wkdayThurs 9.000 6.620   0.564       0
+s(date_n):wkdayFri   9.000 2.362   0.564       0
+s(date_n):wkdaySat   9.000 1.000   0.564       0</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+
+
+<pre class="r"><code>## Task 2.2
+## Question 1
+## Map function
+
+#install.packages(&quot;purrr&quot;)
+library(&quot;reshape2&quot;)
+
+attendancedf &lt;- tibble(Date= as.Date(Transformed.EDdata$Date), Royal.Perth_Attendance=Transformed.EDdata$Royal.Perth_Attendance,Fremantle_Attendance=Transformed.EDdata$Fremantle_Attendance,
+                      Princess.Margaret_Attendance=Transformed.EDdata$Princess.Margaret_Attendance,
+                      King.Edward_Attendance=Transformed.EDdata$King.Edward_Attendance,
+                      Sir.Charles_Attendance=Transformed.EDdata$Sir.Charles_Attendance,Armadale.Kelmscott_Attendance=Transformed.EDdata$Armadale.Kelmscott_Attendance,
+                      Swan.District_Attendance=Transformed.EDdata$Swan.District_Attendance,
+                      RockinghamGH_Attendance=Transformed.EDdata$RockinghamGH_Attendance, Joondalup_Attendance=Transformed.EDdata$Joondalup_Attendance,
+                      wkday= weekly$wkday, date_n= weekly$date_n )
+splitdf&lt;- melt (attendancedf, id=c(&quot;Date&quot;,&quot;wkday&quot;,&quot;date_n&quot;))
+names(splitdf)[4:5]&lt;- c(&quot;Hospitals&quot;,&quot;Patient.Attendance&quot;)
+class(attendancedf$Date)
+library(dplyr)
+library(mgcv)
+library(purrr)
+splitdf %&gt;%
+  split(.$Hospitals)  %&gt;%
+  map(function(df) gam (Patient.Attendance ~ Date, data=df))# %&gt;%</code></pre>
+
+
+
+
+<pre class="r"><code>splitdf %&gt;%
+  split(.$Hospitals)  %&gt;%
+  map(function(df) gam (Patient.Attendance ~ Date+ wkday, data=df))</code></pre>
+
+
+<pre><code>$Royal.Perth_Attendance
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+Patient.Attendance ~ Date + wkday
+Total model degrees of freedom 8 
+
+GCV score: 251.2971     
+
+$Fremantle_Attendance
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+Patient.Attendance ~ Date + wkday
+Total model degrees of freedom 8 
+
+GCV score: 183.2246     
+
+$Princess.Margaret_Attendance
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+Patient.Attendance ~ Date + wkday
+Total model degrees of freedom 8 
+
+GCV score: 522.2316     
+
+$King.Edward_Attendance
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+Patient.Attendance ~ Date + wkday
+Total model degrees of freedom 8 
+
+GCV score: 46.1057     
+
+$Sir.Charles_Attendance
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+Patient.Attendance ~ Date + wkday
+Total model degrees of freedom 8 
+
+GCV score: 211.483     
+
+$Armadale.Kelmscott_Attendance
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+Patient.Attendance ~ Date + wkday
+Total model degrees of freedom 8 
+
+GCV score: 230.2607     
+
+$Swan.District_Attendance
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+Patient.Attendance ~ Date + wkday
+Total model degrees of freedom 8 
+
+GCV score: 132.0593     
+
+$RockinghamGH_Attendance
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+Patient.Attendance ~ Date + wkday
+Total model degrees of freedom 8 
+
+GCV score: 150.4862     
+
+$Joondalup_Attendance
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+Patient.Attendance ~ Date + wkday
+Total model degrees of freedom 8 
+
+GCV score: 283.0081     </code></pre>
+
+
+
+
+<pre class="r"><code>#APPLY AIC TO COMPARE THE MODEL 
+splitdf %&gt;%
+  split(.$Hospitals)  %&gt;%
+  map(function(df) AIC(gam (Patient.Attendance ~ Date, data=df)))</code></pre>
+
+
+<pre><code>$Royal.Perth_Attendance
+[1] 3113.621
+
+$Fremantle_Attendance
+[1] 2990.003
+
+$Princess.Margaret_Attendance
+[1] 3381.4
+
+$King.Edward_Attendance
+[1] 2670.702
+
+$Sir.Charles_Attendance
+[1] 3046.137
+
+$Armadale.Kelmscott_Attendance
+[1] 3167.034
+
+$Swan.District_Attendance
+[1] 2907.146
+
+$RockinghamGH_Attendance
+[1] 2945.206
+
+$Joondalup_Attendance
+[1] 3264.813</code></pre>
+
+
+
+
+<pre class="r"><code>### Plots for all Hospitals
+library(ggplot2)
+plots &lt;- splitdf %&gt;% 
+  split(.$Hospitals) %&gt;% 
+  map(~ggplot(., aes(date_n, Patient.Attendance)) + geom_point() + geom_smooth(se=FALSE))
+plots</code></pre>
+
+
+<pre><code>$Royal.Perth_Attendance
+
+$Fremantle_Attendance
+
+$Princess.Margaret_Attendance
+
+$King.Edward_Attendance
+
+$Sir.Charles_Attendance
+
+$Armadale.Kelmscott_Attendance
+
+$Swan.District_Attendance
+
+$RockinghamGH_Attendance
+
+$Joondalup_Attendance</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+<pre class="r"><code># AIC for all 9 hospitals
+all.model &lt;- splitdf %&gt;%
+                 split(.$Hospitals)  %&gt;%
+                 map(function(df) AIC(gam(Patient.Attendance ~ s(date_n) + wkday, data=df)))
+all.model &lt;- as.data.frame(all.model)
+all.model &lt;- melt(all.model)</code></pre>
+
+
+<pre><code>No id variables; using all as measure variables</code></pre>
+
+
+<pre class="r"><code>all.model</code></pre>
+
+
+<div>
+
+</div>
+
+
+
+
+<pre class="r"><code>## Trends and Residuals
+#Task 2.2
+## Question 2
+layout(matrix(1:4,ncol=2,byrow=TRUE))
+all.model1 &lt;- splitdf %&gt;%
+                 split(.$Hospitals)  %&gt;%
+                 map(function(df)gam.check(gam(Patient.Attendance ~ s(date_n) + wkday, data=df)))</code></pre>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 9 iterations.
+The RMS GCV score gradient at convergence was 0.0003522902 .
+The Hessian was positive definite.
+Model rank =  16 / 16 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+             k&#39;   edf k-index p-value
+s(date_n) 9.000 8.355   0.908    0.03</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 9 iterations.
+The RMS GCV score gradient at convergence was 8.024413e-06 .
+The Hessian was positive definite.
+Model rank =  16 / 16 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+             k&#39;   edf k-index p-value
+s(date_n) 9.000 6.668   0.913    0.06</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 8 iterations.
+The RMS GCV score gradient at convergence was 0.002381987 .
+The Hessian was positive definite.
+Model rank =  16 / 16 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+             k&#39;   edf k-index p-value
+s(date_n) 9.000 8.734   0.763       0</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 4 iterations.
+The RMS GCV score gradient at convergence was 6.872674e-10 .
+The Hessian was positive definite.
+Model rank =  16 / 16 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+            k&#39;  edf k-index p-value
+s(date_n) 9.00 2.75    1.04    0.73</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 6 iterations.
+The RMS GCV score gradient at convergence was 0.0001464961 .
+The Hessian was positive definite.
+Model rank =  16 / 16 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+             k&#39;   edf k-index p-value
+s(date_n) 9.000 5.237   0.877       0</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 6 iterations.
+The RMS GCV score gradient at convergence was 1.304771e-05 .
+The Hessian was positive definite.
+Model rank =  16 / 16 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+             k&#39;   edf k-index p-value
+s(date_n) 9.000 5.447   0.784       0</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 4 iterations.
+The RMS GCV score gradient at convergence was 0.002259946 .
+The Hessian was positive definite.
+Model rank =  16 / 16 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+             k&#39;   edf k-index p-value
+s(date_n) 9.000 4.472   0.905    0.05</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 5 iterations.
+The RMS GCV score gradient at convergence was 0.0003956976 .
+The Hessian was positive definite.
+Model rank =  16 / 16 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+             k&#39;   edf k-index p-value
+s(date_n) 9.000 6.871   0.893    0.02</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre><code>
+Method: GCV   Optimizer: magic
+Smoothing parameter selection converged after 9 iterations.
+The RMS GCV score gradient at convergence was 3.303414e-05 .
+The Hessian was positive definite.
+Model rank =  16 / 16 
+
+Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
+indicate that k is too low, especially if edf is close to k&#39;.
+
+             k&#39;   edf k-index p-value
+s(date_n) 9.000 7.167   0.809       0</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+<pre class="r"><code>all.model1</code></pre>
+
+
+<pre><code>$Royal.Perth_Attendance
+NULL
+
+$Fremantle_Attendance
+NULL
+
+$Princess.Margaret_Attendance
+NULL
+
+$King.Edward_Attendance
+NULL
+
+$Sir.Charles_Attendance
+NULL
+
+$Armadale.Kelmscott_Attendance
+NULL
+
+$Swan.District_Attendance
+NULL
+
+$RockinghamGH_Attendance
+NULL
+
+$Joondalup_Attendance
+NULL</code></pre>
+
+
+
+
+
+
+<pre class="r"><code>### Question 3
+#### Task 3.1
+## Heatwaves and ED demands
+# calculate daily excess heat factor (ehf)
+# arguments:
+#   tx: tmax time series
+#   tn: tmin time series
+#   t95: historical 95th percentile (ideally of avg(tx, tn) 0900-0900 1971-2000)
+# returns daily ehf series
+#install.packages(&quot;stats&quot;)
+library(stats)
+ehf &lt;- function(tx, tn, t95)
+{
+  #message(run.time(), city, &#39;: calculating ehf&#39;)
+  
+  # use filter() to quickly calculate the moving averages required
+  t3 = rowMeans(cbind(
+    stats::filter(tx, c(rep(1/3, 3), rep(0, 2)), method = &#39;convolution&#39;, sides = 2, circular = FALSE),
+    stats::filter(tn, c(rep(1/3, 3), rep(0, 4)), method = &#39;convolution&#39;, sides = 2, circular = FALSE)),
+    na.rm = TRUE)
+  t30 = rowMeans(cbind(
+    stats::filter(tx, c(rep(0, 31), rep(1/30, 30)), method = &#39;convolution&#39;, sides = 2, circular = FALSE),
+    stats::filter(tn, c(rep(0, 29), rep(1/30, 30)), method = &#39;convolution&#39;, sides = 2, circular = FALSE)),
+    na.rm = TRUE)
+  
+  # bring it all together and return ehf
+  ehi.sig = t3 - t95
+  ehi.accl = t3 - t30
+  ehf = ehi.sig * pmax(1, ehi.accl)
+  
+  #message(run.time(), city, &#39;: filling in missing ehf values&#39;)
+  
+  # which values are missing? (except for the edges that can&#39;t be done)
+  missing.vals = which(is.na(ehf))
+  missing.vals =
+    missing.vals[! missing.vals %in% c(1:30, (length(tx) - 2):length(tx))]
+  
+  # fill in missing data manually
+  for (i in missing.vals)
+  {
+    # get rolling tx, tn windows
+    t3x = tx[i:(i + 2)]
+    t3n = tn[(i + 1):(i + 3)]
+    t30x = tx[(i - 30):(i - 1)]
+    t30n = tn[(i - 29):i]
+    
+    # calc ehf if there&#39;s enough data
+    if (length(which(is.na(t3x))) &lt;= 1 ||
+        length(which(is.na(t3n))) &lt;= 1 ||
+        length(which(is.na(t30x))) &lt;= 5 ||
+        length(which(is.na(t30n))) &lt;= 5)
+    {
+      t3 = mean(c(
+        mean(t3x, na.rm = TRUE),
+        mean(t3n, na.rm = TRUE)))
+      t30 = mean(c(
+        mean(t30x, na.rm = TRUE),
+        mean(t30n, na.rm = TRUE)))
+      ehf[i] = (t3 - t95) * pmax(1, t3 - t30)
+    }
+  }
+  return(ehf)
+}
+# threedmt: lowest maximum of today and the next two days
+threedmt &lt;- function(tx)
+{
+  message(run.time(), city, &#39;: calculating threedmt&#39;)
+  
+  # quick version with rollapply
+  threedmt = rollapply(tx, width = 3, FUN = min, fill = NA, align = &#39;left&#39;)
+  
+  message(run.time(), city, &#39;: filling in missing 3dmt values&#39;)
+  
+  # which values are missing? (except for the edges that can&#39;t be done)
+  missing.vals = which(is.na(threedmt))
+  missing.vals =
+    missing.vals[! missing.vals %in% (length(tx) - 1):length(tx)]
+  
+  # fill missing data in manually
+  for (i in missing.vals)
+  {
+    # get rolling tx window
+    txi = tx[i:(i + 2)]
+    
+    # calc 3dmt if there&#39;s enough data
+    if (length(which(is.na(txi))) &lt;= 1)
+      threedmt[i] = min(txi, na.rm = TRUE)
+  }
+  return(threedmt)
+}
+# today&#39;s dat is the mean of tx today and tn tomorrow.
+# threedat is the mean of dat for today + next two days
+threedat &lt;- function(tx, tn)
+{
+  message(run.time(), city, &#39;: calculating threedat&#39;)
+  # do the initial work quickly with filter()
+  threedat =
+    rowMeans(cbind(
+      stats::filter(tx, c(rep(1/3, 3), rep(0, 2)), method = &#39;convolution&#39;, sides = 2, circular = FALSE),
+      stats::filter(tn, c(rep(1/3, 3), rep(0, 4)), method = &#39;convolution&#39;, sides = 2, circular = FALSE)),
+      na.rm = TRUE)
+  
+  message(run.time(), city, &#39;: filling in missing 3dat values&#39;)
+  
+  # which values are missing? (except for the edges that can&#39;t be done)
+  missing.vals = which(is.na(threedat))
+  missing.vals =
+    missing.vals[! missing.vals %in% (length(tx) - 2):length(tx)]
+  
+  # fill missing data in manually
+  for (i in missing.vals)
+  {
+    # get rolling tx, tn windows 
+    txi = tx[i:(i + 2)]
+    tni = tn[(i + 1):(i + 3)]
+    
+    # cal if there&#39;s enough data
+    if (length(which(is.na(txi))) &lt;= 1 &amp;&amp;
+        length(which(is.na(tni))) &lt;= 1)
+      threedat[i] = mean(c(
+        mean(txi, na.rm = TRUE),
+        mean(tni, na.rm = TRUE)),
+        na.rm = TRUE)
+  }
+  return(threedat)
+}
+# returns a vector lagged by n elements (last n elements are lost)
+# use a negative n to bring the series forward
+lag &lt;- function(x, n)
+{
+  if (n == 0) 
+  {
+    return(x)
+  } else if (n &gt; 0)
+  {
+    return(c(rep(NA, n), x[1:(length(x) - n)]))
+  } else if (n &lt; 0)
+  {
+    # todo
+    #x = -x
+    #return(c())
+  }
+  
+}</code></pre>
+
+
+
+
+
+
+<pre class="r"><code># TAvg from 1971
+library(rnoaa)
+id = &quot;0B37JMM3p2aLPRXlUb1NqZWtISjQ&quot;
+Temp_AVG &lt;- read.csv(sprintf(&quot;https://docs.google.com/uc?id=%s&amp;export=download&quot;, id)) 
+T_95&lt;-quantile(Temp_AVG$value,c(.95))
+timeseries$T95&lt;-T_95
+timeseries$EHF&lt;-ehf(timeseries$TMAX,timeseries$TMIN,timeseries$T95)</code></pre>
+
+
+<pre><code>number of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement lengthnumber of items to replace is not a multiple of replacement length</code></pre>
+
+
+<pre class="r"><code>timeseries</code></pre>
+
+
+<div>
+
+</div>
+
+
+
+
+
+
+<pre class="r"><code># Task 3.1
+# Question 2
+### Relationship Between Heatwave and the Time period given
+model_gam4 &lt;- gam( EHF ~s(as.numeric(Date)), data = timeseries) </code></pre>
+
+
+<pre><code>Dropping 32 rows with missing valuesDropping 32 rows with missing values</code></pre>
+
+
+<pre class="r"><code>plotModel(model_gam4)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+<pre class="r"><code># Examining the relationship Between EHF and Total  
+library(ggplot2)
+ggplot(timeseries, aes(EHF,Total_Attendances)) + 
+  geom_abline(data = models, alpha = 1/4) +
+  geom_point() </code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+
+
+<pre class="r"><code>## Fitting EHF as an additional Predictor
+timeseries$wkday&lt;-weekly$wkday
+timeseries$date_n&lt;-weekly$date_n
+model_gam6 &lt;- gam( Total_Attendances ~ s(date_n) + wkday + EHF, data = timeseries) </code></pre>
+
+
+<pre><code>Dropping 32 rows with missing valuesDropping 32 rows with missing values</code></pre>
+
+
+<pre class="r"><code>plotModel(model_gam6)</code></pre>
+
+
+<p><img src="javascript://"/></p>
+
+
+
+
+
+
+<pre class="r"><code>AIC(model_gam6, model_gam2)</code></pre>
+
+
+<div>
+
+</div>
+
+
+
+<p>Add a new chunk by clicking the <em>Insert Chunk</em> button on the toolbar or by pressing <em>Cmd+Option+I</em>.</p>
+<p>When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the <em>Preview</em> button or press <em>Cmd+Shift+K</em> to preview the HTML file).</p>
+
+
+<div>LS0tCnRpdGxlOiAiQXNzaWdubWVudCAyIgpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sKLS0tCgpUaGlzIGlzIGFuIFtSIE1hcmtkb3duXShodHRwOi8vcm1hcmtkb3duLnJzdHVkaW8uY29tKSBOb3RlYm9vay4gV2hlbiB5b3UgZXhlY3V0ZSBjb2RlIHdpdGhpbiB0aGUgbm90ZWJvb2ssIHRoZSByZXN1bHRzIGFwcGVhciBiZW5lYXRoIHRoZSBjb2RlLiAKClRyeSBleGVjdXRpbmcgdGhpcyBjaHVuayBieSBjbGlja2luZyB0aGUgKlJ1biogYnV0dG9uIHdpdGhpbiB0aGUgY2h1bmsgb3IgYnkgcGxhY2luZyB5b3VyIGN1cnNvciBpbnNpZGUgaXQgYW5kIHByZXNzaW5nICpDbWQrU2hpZnQrRW50ZXIqLiAKCmBgYHtyfQojIFJlYWQgaW4gdGhlIEVEIERlbWFuZHMgZGF0YSBpbnRvIFIKVHJhbnNmb3JtZWQuRURkYXRhIDwtIHJlYWQuY3N2KGZpbGU9Ii9Vc2Vycy9vbHV3YXRhZGUvRG9jdW1lbnRzL0RlYWtpbiBUcmltZXN0ZXIgMSAyMDE3L1N0YXRpc3RpY2FsIERhdGEgQW5hbHlzaXMvZ292aGFjazMuY3N2IiwgaGVhZGVyPVRSVUUpIApUcmFuc2Zvcm1lZC5FRGRhdGEkRGF0ZTwtYXMuRGF0ZShUcmFuc2Zvcm1lZC5FRGRhdGEkRGF0ZSkKYGBgCgpgYGB7cn0KbGlicmFyeShkZXZ0b29scykKbGlicmFyeShybm9hYSkKbGlicmFyeShnZ3Bsb3QyKQpsaWJyYXJ5KEhtaXNjKQojQ29udmVydGluZyBGYWhyZWhlaXRzIHRvIENlbHNpdXMgYnkgQ3JlYXRpbmcgRnVuY3Rpb25zCgpmYWhyX3RvX2tlbHZpbiA8LSBmdW5jdGlvbih0ZW1wKSB7CiAgI0NvbnZlcnRzIEZhaHJlbmhlaXQgdG8gS2VsdmluCiAga2VsdmluIDwtICgodGVtcCAtIDMyKSAqICg1LzkpKSArIDI3My4xNQogIGtlbHZpbgp9CmtlbHZpbl90b19jZWxzaXVzIDwtIGZ1bmN0aW9uKHRlbXApIHsKICAjQ29udmVydHMgS2VsdmluIHRvIENlbHNpdXMKICBjZWxzaXVzIDwtIHRlbXAgLSAyNzMuMTUKICBjZWxzaXVzCn0KCmZhaHJfdG9fY2Vsc2l1cyA8LSBmdW5jdGlvbih0ZW1wKSB7CiAgI0NvbnZlcnRzIEZhaHJlbmhlaXQgdG8gQ2Vsc2l1cyB1c2luZyBmYWhyX3RvX2tlbHZpbigpIGFuZCBrZWx2aW5fdG9fY2Vsc2l1cygpCiAgdGVtcF9rIDwtIGZhaHJfdG9fa2VsdmluKHRlbXApCiAgcmVzdWx0IDwtIGtlbHZpbl90b19jZWxzaXVzKHRlbXBfaykKICByZXN1bHQKfQpgYGAKYGBge3J9CmxpYnJhcnkoZGV2dG9vbHMpCmxpYnJhcnkocm5vYWEpCmxpYnJhcnkoZ2dwbG90MikKbGlicmFyeShIbWlzYykKIyBBUEkga2V5cyAtIGF1dGhlbnRpY2F0aW9uIAoKVGVtcE1pbiA8LW5jZGMoZGF0YXNldGlkID0gIkdIQ05EIiwgZGF0YXR5cGVpZCA9ICJUTUlOIiwgc3RhdGlvbmlkID0gIkdIQ05EOkFTTjAwMDA5MjI1IiwKICAgICAgICAgICAgbGltaXQgPSAzNjUsIHRva2VuID0gIkRqWVRVTUlSUnlCSmRFYlJmVXVCc3JNTmxsbmlVbmFuIiwgc3RhcnRkYXRlID0gIjIwMTMtMDctMDEiLCBlbmRkYXRlID0gIjIwMTQtMDYtMzAiKSRkYXRhClRlbXBNYXggPC1uY2RjKGRhdGFzZXRpZCA9ICJHSENORCIsIGRhdGF0eXBlaWQgPSAiVE1BWCIsIHN0YXRpb25pZCA9ICJHSENORDpBU04wMDAwOTIyNSIsCiAgICAgICAgICAgICAgICAgbGltaXQgPSAzNjUsIHRva2VuID0gIkRqWVRVTUlSUnlCSmRFYlJmVXVCc3JNTmxsbmlVbmFuIiwgc3RhcnRkYXRlID0gIjIwMTMtMDctMDEiLCBlbmRkYXRlID0gIjIwMTQtMDYtMzAiKSRkYXRhCgpUcmFuc2Zvcm1lZC5FRGRhdGEkVGVtcE1pbjwtKFRlbXBNaW4kdmFsdWUpLzEwClRyYW5zZm9ybWVkLkVEZGF0YSRUZW1wTWF4PC0oVGVtcE1heCR2YWx1ZSkvMTAKVHJhbnNmb3JtZWQuRURkYXRhJEF2ZXJhZ2VQcmVjaXA8LVByZWNpcCR2YWx1ZQojQ3JlYXRlIHZhcmlhYmxlcyBvZiB3ZWVrcwpsaWJyYXJ5ICh6b28pCgpUcmFuc2Zvcm1lZC5FRGRhdGEkTW9udGggPC0gYXMuRGF0ZShjdXQoYXMuRGF0ZShUcmFuc2Zvcm1lZC5FRGRhdGEkRGF0ZSksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBicmVha3MgPSAibW9udGgiKSkKI1RyYW5zZm9ybWVkLkVEZGF0YSRRdWFydGVyIDwtIGFzLkRhdGUoY3V0KGFzLkRhdGUoVHJhbnNmb3JtZWQuRURkYXRhJERhdGUpLGJyZWFrcyA9ICJxdWFydGVyIikpClRyYW5zZm9ybWVkLkVEZGF0YSRXZWVrIDwtIGFzLkRhdGUoY3V0KGFzLkRhdGUoVHJhbnNmb3JtZWQuRURkYXRhJERhdGUpLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBicmVha3MgPSAid2VlayIsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN0YXJ0Lm9uLm1vbmRheSA9IEZBTFNFKSkgIyBjaGFuZ2VzIHdlZWtseSBicmVhayBwb2ludCB0byBTdW5kYXkKCmRlc2NyaWJlKFRyYW5zZm9ybWVkLkVEZGF0YSkKYGBgCgpgYGB7cn0KYWRtaXNzaW9uZGYgPC0gdGliYmxlKERhdGU9IFRyYW5zZm9ybWVkLkVEZGF0YSREYXRlLCBSb3lhbC5QZXJ0aF9BdHRlbmRhbmNlPVRyYW5zZm9ybWVkLkVEZGF0YSRSb3lhbC5QZXJ0aF9BdHRlbmRhbmNlLFJveWFsLlBlcnRoX0FkbWlzc2lvbnM9VHJhbnNmb3JtZWQuRURkYXRhJFJveWFsLlBlcnRoX0FkbWlzc2lvbnMsRnJlbWFudGxlX0F0dGVuZGFuY2U9VHJhbnNmb3JtZWQuRURkYXRhJEZyZW1hbnRsZV9BdHRlbmRhbmNlLAogICAgICAgICAgICAgICAgICAgICAgRnJlbWFudGxlX0FkbWlzc2lvbnM9VHJhbnNmb3JtZWQuRURkYXRhJEZyZW1hbnRsZV9BZG1pc3Npb25zLFByaW5jZXNzLk1hcmdhcmV0X0F0dGVuZGFuY2U9VHJhbnNmb3JtZWQuRURkYXRhJFByaW5jZXNzLk1hcmdhcmV0X0F0dGVuZGFuY2UsCiAgICAgICAgICAgICAgICAgICAgICBQcmluY2Vzcy5NYXJnYXJldF9BZG1pc3Npb25zPVRyYW5zZm9ybWVkLkVEZGF0YSRQcmluY2Vzcy5NYXJnYXJldF9BZG1pc3Npb25zLEtpbmcuRWR3YXJkX0F0dGVuZGFuY2U9VHJhbnNmb3JtZWQuRURkYXRhJEtpbmcuRWR3YXJkX0F0dGVuZGFuY2UsS2luZy5FZHdhcmRfQWRtaXNzaW9ucz1UcmFuc2Zvcm1lZC5FRGRhdGEkS2luZy5FZHdhcmRfQWRtaXNzaW9ucywKICAgICAgICAgICAgICAgICAgICAgIFNpci5DaGFybGVzX0F0dGVuZGFuY2U9VHJhbnNmb3JtZWQuRURkYXRhJFNpci5DaGFybGVzX0F0dGVuZGFuY2UsU2lyLkNoYXJsZXNfQWRtaXNzaW9ucz1UcmFuc2Zvcm1lZC5FRGRhdGEkU2lyLkNoYXJsZXNfQWRtaXNzaW9ucyxBcm1hZGFsZS5LZWxtc2NvdHRfQXR0ZW5kYW5jZT1UcmFuc2Zvcm1lZC5FRGRhdGEkQXJtYWRhbGUuS2VsbXNjb3R0X0F0dGVuZGFuY2UsCiAgICAgICAgICAgICAgICAgICAgICBBcm1hZGFsZS5LZWxtc2NvdHRfQWRtaXNzaW9ucz1UcmFuc2Zvcm1lZC5FRGRhdGEkQXJtYWRhbGUuS2VsbXNjb3R0X0FkbWlzc2lvbnMsU3dhbi5EaXN0cmljdF9BdHRlbmRhbmNlPVRyYW5zZm9ybWVkLkVEZGF0YSRTd2FuLkRpc3RyaWN0X0F0dGVuZGFuY2UsU3dhbi5EaXN0cmljdF9BZG1pc3Npb25zPVRyYW5zZm9ybWVkLkVEZGF0YSRTd2FuLkRpc3RyaWN0X0FkbWlzc2lvbnMsCiAgICAgICAgICAgICAgICAgICAgICBSb2NraW5naGFtR0hfQXR0ZW5kYW5jZT1UcmFuc2Zvcm1lZC5FRGRhdGEkUm9ja2luZ2hhbUdIX0F0dGVuZGFuY2UsUm9ja2luZ2hhbUdIX0FkbWlzc2lvbnM9VHJhbnNmb3JtZWQuRURkYXRhJFJvY2tpbmdoYW1HSF9BZG1pc3Npb25zLCBKb29uZGFsdXBfQXR0ZW5kYW5jZT1UcmFuc2Zvcm1lZC5FRGRhdGEkSm9vbmRhbHVwX0F0dGVuZGFuY2UsSm9vbmRhbHVwX0FkbWlzc2lvbnM9VHJhbnNmb3JtZWQuRURkYXRhJEpvb25kYWx1cF9BZG1pc3Npb25zKQoKYWRtaXNzaW9uZGYkVG90YWxfQXR0ZW5kYW5jZXMgPC1yb3dTdW1zKGFkbWlzc2lvbmRmIFtjKDIsNCw2LDgsMTAsMTIsMTQsMTYsMTgpXSkKYWRtaXNzaW9uZGYkVG90YWxfQWRtaXNzaW9ucyA8LXJvd1N1bXMoYWRtaXNzaW9uZGYgWyxjKDMsNSw3LDksMTEsMTMsMTUsMTcsMTkpXSkKCgojIyBSYW5kb21seSBQaWNrIGEgdmFyaWFibGUKCnRpbWVzZXJpZXM8LSBkYXRhLmZyYW1lKERhdGU9IFRyYW5zZm9ybWVkLkVEZGF0YSREYXRlLFRvdGFsX0F0dGVuZGFuY2VzPWFkbWlzc2lvbmRmJFRvdGFsX0F0dGVuZGFuY2VzLCBNb250aD0gVHJhbnNmb3JtZWQuRURkYXRhJE1vbnRoLCBUTUFYPVRyYW5zZm9ybWVkLkVEZGF0YSRUZW1wTWF4LCBUTUlOPVRyYW5zZm9ybWVkLkVEZGF0YSRUZW1wTWluKSAKYGBgCgoKYGBge3J9CiMjIFRhc2sgMi4xIAojIyBRdWVzdGlvbiAxCiMjIEZpdHRpbmcgYSBsaW5lYXIgbW9kZWwgZm9yIFkgKFRvdGFsIEF0dGVuZGFuY2UpIHVzaW5nIERhdGUgYXMgdGhlIFByZWRpY3RvciBWYXJpYWJsZQpsaWJyYXJ5KE1BU1MpCmxpYnJhcnkobWdjdikgCmxpYnJhcnkoZ2dwbG90MikKbGlicmFyeSh0aWR5dmVyc2UpCmxpYnJhcnkoZ2FwbWluZGVyKQp0bW9kZWw8LWxtKFRvdGFsX0F0dGVuZGFuY2VzfmFzLkRhdGUoRGF0ZSksIGRhdGE9dGltZXNlcmllcykKbGlicmFyeShtb3NhaWMpCnBsb3RNb2RlbCh0bW9kZWwsIHN5c3RlbSA9ICJnIikKCmBgYAoKYGBge3J9CiMjIyBQbG90IGZvciBGaXR0ZWQgVmFsdWVzIGFuZCBSZXNpZHVhbHMKbGlicmFyeShicm9vbSkKdG1vZGVsX2RmIDwtIGF1Z21lbnQodG1vZGVsKQp0bW9kZWxfZGYKIyMjIEZpcnN0LCB3ZSBwbG90IERhdGUgdnMgUmVzaWR1YWwgYW5kIHRyeSB0byBzZWUgdGhlIG1vZGVsIGZpdAp0bW9kZWxfZGYgJT4lIAogIGdncGxvdChhZXMoeCA9YXMuRGF0ZS5EYXRlLiwgeSA9IC5yZXNpZCkpICsgCiAgZ2VvbV9obGluZSh5aW50ZXJjZXB0ID0gMCwgY29sb3VyID0gInN0ZWVsYmx1ZSIpICsKICBnZW9tX3BvaW50KCkKYGBgCgpgYGB7cn0KdG1vZGVsX2RmICU+JSAKICAKICAjIyBUaGVuIHdlIHBsb3QgdGhlIGZpdHRlZCB2cyBSZXNpZHVhbCBhbmQgY29tcGFyZSB3aXRoIHRoZSBtb2RlbCBhYm92ZQogIGdncGxvdChhZXMoeCA9IC5maXR0ZWQsIHkgPSAucmVzaWQpKSArIAogIGdlb21faGxpbmUoeWludGVyY2VwdCA9IDAsIGNvbG91ciA9ICJzdGVlbGJsdWUiKSArCiAgZ2VvbV9wb2ludCgpCmBgYApgYGB7cn0KCiMjIFVzaW5nIEdlb21fUG9pbnQgYW5kIEdlb21fU21vb3RoZSwgd2UgcGxvdCBvdXIgZml0dGVkIHZzIFJlc2lkdWFsIAp0bW9kZWxfZGYgJT4lIAogIGdncGxvdChhZXMoeCA9IC5maXR0ZWQsIHkgPSAucmVzaWQpKSArIAogIGdlb21faGxpbmUoeWludGVyY2VwdCA9IDAsIGNvbG91ciA9ICJzdGVlbGJsdWUiKSArCiAgZ2VvbV9wb2ludCgpICsKICBnZW9tX3Ntb290aChzZSA9IEZBTFNFKQpgYGAKYGBge3J9CiMgVGhlIHBsb3QgYmVsb3cgc2hvd3MgdGhlIFEtUSBQbG90IGZvciB0aGUgcHJlZGljdGl2ZSBtb2RlbAp0bW9kZWxfZGYgJT4lIAogIGdncGxvdChhZXMoc2FtcGxlID0gLnN0ZC5yZXNpZCkpICsKICBzdGF0X3FxKCkgKwogIGdlb21fYWJsaW5lKGNvbG91ciA9ICJzdGVlbGJsdWUiKQpgYGAKYGBge3J9CmdsYW5jZSh0bW9kZWwpCmBgYApgYGB7cn0KIyMgVGFzayAyLjEKIyMgUXVlc3Rpb24gMgojIyBGaXR0aW5nIGEgZ2VuZXJhbGlzZWQgQWRkaXRpdmUgTW9kZWwgCiMjIyBHQU0gTW9kZWwKbGlicmFyeShtZ2N2KQpsaWJyYXJ5KHRpbWVEYXRlKQpsaWJyYXJ5KGx1YnJpZGF0ZSkKbW9kZWxfZ2FtMSA8LSBnYW0oIFRvdGFsX0F0dGVuZGFuY2VzIH5zKGFzLm51bWVyaWMoRGF0ZSkpLCBkYXRhID0gdGltZXNlcmllcykgCnBsb3RNb2RlbChtb2RlbF9nYW0xKQpgYGAKYGBge3J9CiMjIyBBc3Nlc3MgbW9kZWwgRml0IGFuZCBjaGVjayB0aGUgcGF0dGVybnMgaW4gdGhlIHJlc2lkdWFsIApnYW0uY2hlY2sobW9kZWxfZ2FtMSkKYGBgCgpgYGB7cn0KIyMgVGFzayAyLjEKIyMgUXVlc3Rpb24gMwojIEluY29ycG9yYXRlIHdlZWtseSBTZWFzb25hbGl0eQp3ZWVrbHk8LSB0aW1lc2VyaWVzICU+JSAKbXV0YXRlKHdrZGF5ID0gZmFjdG9yKHdkYXkoRGF0ZSwgbGFiZWwgPSBUUlVFKSwgb3JkZXJlZCA9IEZBTFNFKSwgCiAgICAgICAgICAgICAgICAgICAgICBkYXRlX24gPSBhcy5udW1lcmljKERhdGUpKQogICAgICAgCm1vZGVsX2dhbTIgPC0gZ2FtKCBUb3RhbF9BdHRlbmRhbmNlcyB+IHMoZGF0ZV9uKSArIHdrZGF5LCBkYXRhID0gd2Vla2x5KSAKcGxvdE1vZGVsKG1vZGVsX2dhbTIpCgpgYGAKYGBge3J9Cm1vZGVsX2dhbTMgPC0gZ2FtKFRvdGFsX0F0dGVuZGFuY2VzIH4gcyhkYXRlX24sIGJ5ID0gd2tkYXkpICsgd2tkYXksIGRhdGEgPSB3ZWVrbHkpIApwbG90TW9kZWwobW9kZWxfZ2FtMykKYGBgCgoKYGBge3J9CiMgRnVuY3Rpb24gdG8gdmlzdWFsaXplIGZpdHRlZAoKbGlicmFyeSh6b28pCmxpYnJhcnkobWdjdikKCiMjIENvbXBhcmUgTW9kZWxzIHVzaW5nIEFJQwoKQUlDKG1vZGVsX2dhbTEsbW9kZWxfZ2FtMixtb2RlbF9nYW0zKQoKZ2FtLmNoZWNrKG1vZGVsX2dhbTEpCmdhbS5jaGVjayhtb2RlbF9nYW0yKQpnYW0uY2hlY2sobW9kZWxfZ2FtMykKCmBgYAoKCmBgYHtyfQojIyBUYXNrIDIuMgojIyBRdWVzdGlvbiAxCiMjIE1hcCBmdW5jdGlvbgoKI2luc3RhbGwucGFja2FnZXMoInB1cnJyIikKbGlicmFyeSgicmVzaGFwZTIiKQoKYXR0ZW5kYW5jZWRmIDwtIHRpYmJsZShEYXRlPSBhcy5EYXRlKFRyYW5zZm9ybWVkLkVEZGF0YSREYXRlKSwgUm95YWwuUGVydGhfQXR0ZW5kYW5jZT1UcmFuc2Zvcm1lZC5FRGRhdGEkUm95YWwuUGVydGhfQXR0ZW5kYW5jZSxGcmVtYW50bGVfQXR0ZW5kYW5jZT1UcmFuc2Zvcm1lZC5FRGRhdGEkRnJlbWFudGxlX0F0dGVuZGFuY2UsCiAgICAgICAgICAgICAgICAgICAgICBQcmluY2Vzcy5NYXJnYXJldF9BdHRlbmRhbmNlPVRyYW5zZm9ybWVkLkVEZGF0YSRQcmluY2Vzcy5NYXJnYXJldF9BdHRlbmRhbmNlLAogICAgICAgICAgICAgICAgICAgICAgS2luZy5FZHdhcmRfQXR0ZW5kYW5jZT1UcmFuc2Zvcm1lZC5FRGRhdGEkS2luZy5FZHdhcmRfQXR0ZW5kYW5jZSwKICAgICAgICAgICAgICAgICAgICAgIFNpci5DaGFybGVzX0F0dGVuZGFuY2U9VHJhbnNmb3JtZWQuRURkYXRhJFNpci5DaGFybGVzX0F0dGVuZGFuY2UsQXJtYWRhbGUuS2VsbXNjb3R0X0F0dGVuZGFuY2U9VHJhbnNmb3JtZWQuRURkYXRhJEFybWFkYWxlLktlbG1zY290dF9BdHRlbmRhbmNlLAogICAgICAgICAgICAgICAgICAgICAgU3dhbi5EaXN0cmljdF9BdHRlbmRhbmNlPVRyYW5zZm9ybWVkLkVEZGF0YSRTd2FuLkRpc3RyaWN0X0F0dGVuZGFuY2UsCiAgICAgICAgICAgICAgICAgICAgICBSb2NraW5naGFtR0hfQXR0ZW5kYW5jZT1UcmFuc2Zvcm1lZC5FRGRhdGEkUm9ja2luZ2hhbUdIX0F0dGVuZGFuY2UsIEpvb25kYWx1cF9BdHRlbmRhbmNlPVRyYW5zZm9ybWVkLkVEZGF0YSRKb29uZGFsdXBfQXR0ZW5kYW5jZSwKICAgICAgICAgICAgICAgICAgICAgIHdrZGF5PSB3ZWVrbHkkd2tkYXksIGRhdGVfbj0gd2Vla2x5JGRhdGVfbiApCnNwbGl0ZGY8LSBtZWx0IChhdHRlbmRhbmNlZGYsIGlkPWMoIkRhdGUiLCJ3a2RheSIsImRhdGVfbiIpKQpuYW1lcyhzcGxpdGRmKVs0OjVdPC0gYygiSG9zcGl0YWxzIiwiUGF0aWVudC5BdHRlbmRhbmNlIikKY2xhc3MoYXR0ZW5kYW5jZWRmJERhdGUpCmxpYnJhcnkoZHBseXIpCmxpYnJhcnkobWdjdikKbGlicmFyeShwdXJycikKc3BsaXRkZiAlPiUKICBzcGxpdCguJEhvc3BpdGFscykgICU+JQogIG1hcChmdW5jdGlvbihkZikgZ2FtIChQYXRpZW50LkF0dGVuZGFuY2UgfiBEYXRlLCBkYXRhPWRmKSkjICU+JQpgYGAKYGBge3J9CnNwbGl0ZGYgJT4lCiAgc3BsaXQoLiRIb3NwaXRhbHMpICAlPiUKICBtYXAoZnVuY3Rpb24oZGYpIGdhbSAoUGF0aWVudC5BdHRlbmRhbmNlIH4gRGF0ZSsgd2tkYXksIGRhdGE9ZGYpKQpgYGAKYGBge3J9CiNBUFBMWSBBSUMgVE8gQ09NUEFSRSBUSEUgTU9ERUwgCnNwbGl0ZGYgJT4lCiAgc3BsaXQoLiRIb3NwaXRhbHMpICAlPiUKICBtYXAoZnVuY3Rpb24oZGYpIEFJQyhnYW0gKFBhdGllbnQuQXR0ZW5kYW5jZSB+IERhdGUsIGRhdGE9ZGYpKSkKCmBgYApgYGB7cn0KIyMjIFBsb3RzIGZvciBhbGwgSG9zcGl0YWxzCmxpYnJhcnkoZ2dwbG90MikKcGxvdHMgPC0gc3BsaXRkZiAlPiUgCiAgc3BsaXQoLiRIb3NwaXRhbHMpICU+JSAKICBtYXAofmdncGxvdCguLCBhZXMoZGF0ZV9uLCBQYXRpZW50LkF0dGVuZGFuY2UpKSArIGdlb21fcG9pbnQoKSArIGdlb21fc21vb3RoKHNlPUZBTFNFKSkKcGxvdHMKYGBgCmBgYHtyfQojIEFJQyBmb3IgYWxsIDkgaG9zcGl0YWxzCmFsbC5tb2RlbCA8LSBzcGxpdGRmICU+JQogICAgICAgICAgICAgICAgIHNwbGl0KC4kSG9zcGl0YWxzKSAgJT4lCiAgICAgICAgICAgICAgICAgbWFwKGZ1bmN0aW9uKGRmKSBBSUMoZ2FtKFBhdGllbnQuQXR0ZW5kYW5jZSB+IHMoZGF0ZV9uKSArIHdrZGF5LCBkYXRhPWRmKSkpCmFsbC5tb2RlbCA8LSBhcy5kYXRhLmZyYW1lKGFsbC5tb2RlbCkKYWxsLm1vZGVsIDwtIG1lbHQoYWxsLm1vZGVsKQphbGwubW9kZWwKYGBgCmBgYHtyfQojIyBUcmVuZHMgYW5kIFJlc2lkdWFscwojVGFzayAyLjIKIyMgUXVlc3Rpb24gMgpsYXlvdXQobWF0cml4KDE6NCxuY29sPTIsYnlyb3c9VFJVRSkpCmFsbC5tb2RlbDEgPC0gc3BsaXRkZiAlPiUKICAgICAgICAgICAgICAgICBzcGxpdCguJEhvc3BpdGFscykgICU+JQogICAgICAgICAgICAgICAgIG1hcChmdW5jdGlvbihkZilnYW0uY2hlY2soZ2FtKFBhdGllbnQuQXR0ZW5kYW5jZSB+IHMoZGF0ZV9uKSArIHdrZGF5LCBkYXRhPWRmKSkpCmFsbC5tb2RlbDEKYGBgCgpgYGB7cn0KCiMjIyBRdWVzdGlvbiAzCiMjIyMgVGFzayAzLjEKIyMgSGVhdHdhdmVzIGFuZCBFRCBkZW1hbmRzCgojIGNhbGN1bGF0ZSBkYWlseSBleGNlc3MgaGVhdCBmYWN0b3IgKGVoZikKIyBhcmd1bWVudHM6CiMJdHg6IHRtYXggdGltZSBzZXJpZXMKIwl0bjogdG1pbiB0aW1lIHNlcmllcwojCXQ5NTogaGlzdG9yaWNhbCA5NXRoIHBlcmNlbnRpbGUgKGlkZWFsbHkgb2YgYXZnKHR4LCB0bikgMDkwMC0wOTAwIDE5NzEtMjAwMCkKIyByZXR1cm5zIGRhaWx5IGVoZiBzZXJpZXMKI2luc3RhbGwucGFja2FnZXMoInN0YXRzIikKbGlicmFyeShzdGF0cykKZWhmIDwtIGZ1bmN0aW9uKHR4LCB0biwgdDk1KQp7CiAgI21lc3NhZ2UocnVuLnRpbWUoKSwgY2l0eSwgJzogY2FsY3VsYXRpbmcgZWhmJykKICAKICAjIHVzZSBmaWx0ZXIoKSB0byBxdWlja2x5IGNhbGN1bGF0ZSB0aGUgbW92aW5nIGF2ZXJhZ2VzIHJlcXVpcmVkCiAgdDMgPSByb3dNZWFucyhjYmluZCgKICAgIHN0YXRzOjpmaWx0ZXIodHgsIGMocmVwKDEvMywgMyksIHJlcCgwLCAyKSksIG1ldGhvZCA9ICdjb252b2x1dGlvbicsIHNpZGVzID0gMiwgY2lyY3VsYXIgPSBGQUxTRSksCiAgICBzdGF0czo6ZmlsdGVyKHRuLCBjKHJlcCgxLzMsIDMpLCByZXAoMCwgNCkpLCBtZXRob2QgPSAnY29udm9sdXRpb24nLCBzaWRlcyA9IDIsIGNpcmN1bGFyID0gRkFMU0UpKSwKICAgIG5hLnJtID0gVFJVRSkKICB0MzAgPSByb3dNZWFucyhjYmluZCgKICAgIHN0YXRzOjpmaWx0ZXIodHgsIGMocmVwKDAsIDMxKSwgcmVwKDEvMzAsIDMwKSksIG1ldGhvZCA9ICdjb252b2x1dGlvbicsIHNpZGVzID0gMiwgY2lyY3VsYXIgPSBGQUxTRSksCiAgICBzdGF0czo6ZmlsdGVyKHRuLCBjKHJlcCgwLCAyOSksIHJlcCgxLzMwLCAzMCkpLCBtZXRob2QgPSAnY29udm9sdXRpb24nLCBzaWRlcyA9IDIsIGNpcmN1bGFyID0gRkFMU0UpKSwKICAgIG5hLnJtID0gVFJVRSkKICAKICAjIGJyaW5nIGl0IGFsbCB0b2dldGhlciBhbmQgcmV0dXJuIGVoZgogIGVoaS5zaWcgPSB0MyAtIHQ5NQogIGVoaS5hY2NsID0gdDMgLSB0MzAKICBlaGYgPSBlaGkuc2lnICogcG1heCgxLCBlaGkuYWNjbCkKICAKICAjbWVzc2FnZShydW4udGltZSgpLCBjaXR5LCAnOiBmaWxsaW5nIGluIG1pc3NpbmcgZWhmIHZhbHVlcycpCiAgCiAgIyB3aGljaCB2YWx1ZXMgYXJlIG1pc3Npbmc/IChleGNlcHQgZm9yIHRoZSBlZGdlcyB0aGF0IGNhbid0IGJlIGRvbmUpCiAgbWlzc2luZy52YWxzID0gd2hpY2goaXMubmEoZWhmKSkKICBtaXNzaW5nLnZhbHMgPQogICAgbWlzc2luZy52YWxzWyEgbWlzc2luZy52YWxzICVpbiUgYygxOjMwLCAobGVuZ3RoKHR4KSAtIDIpOmxlbmd0aCh0eCkpXQogIAogICMgZmlsbCBpbiBtaXNzaW5nIGRhdGEgbWFudWFsbHkKICBmb3IgKGkgaW4gbWlzc2luZy52YWxzKQogIHsKICAgICMgZ2V0IHJvbGxpbmcgdHgsIHRuIHdpbmRvd3MKICAgIHQzeCA9IHR4W2k6KGkgKyAyKV0KICAgIHQzbiA9IHRuWyhpICsgMSk6KGkgKyAzKV0KICAgIHQzMHggPSB0eFsoaSAtIDMwKTooaSAtIDEpXQogICAgdDMwbiA9IHRuWyhpIC0gMjkpOmldCiAgICAKICAgICMgY2FsYyBlaGYgaWYgdGhlcmUncyBlbm91Z2ggZGF0YQogICAgaWYgKGxlbmd0aCh3aGljaChpcy5uYSh0M3gpKSkgPD0gMSB8fAogICAgICAgIGxlbmd0aCh3aGljaChpcy5uYSh0M24pKSkgPD0gMSB8fAogICAgICAgIGxlbmd0aCh3aGljaChpcy5uYSh0MzB4KSkpIDw9IDUgfHwKICAgICAgICBsZW5ndGgod2hpY2goaXMubmEodDMwbikpKSA8PSA1KQogICAgewogICAgICB0MyA9IG1lYW4oYygKICAgICAgICBtZWFuKHQzeCwgbmEucm0gPSBUUlVFKSwKICAgICAgICBtZWFuKHQzbiwgbmEucm0gPSBUUlVFKSkpCiAgICAgIHQzMCA9IG1lYW4oYygKICAgICAgICBtZWFuKHQzMHgsIG5hLnJtID0gVFJVRSksCiAgICAgICAgbWVhbih0MzBuLCBuYS5ybSA9IFRSVUUpKSkKICAgICAgZWhmW2ldID0gKHQzIC0gdDk1KSAqIHBtYXgoMSwgdDMgLSB0MzApCiAgICB9CiAgfQogIHJldHVybihlaGYpCn0KCiMgdGhyZWVkbXQ6IGxvd2VzdCBtYXhpbXVtIG9mIHRvZGF5IGFuZCB0aGUgbmV4dCB0d28gZGF5cwp0aHJlZWRtdCA8LSBmdW5jdGlvbih0eCkKewogIG1lc3NhZ2UocnVuLnRpbWUoKSwgY2l0eSwgJzogY2FsY3VsYXRpbmcgdGhyZWVkbXQnKQogIAogICMgcXVpY2sgdmVyc2lvbiB3aXRoIHJvbGxhcHBseQogIHRocmVlZG10ID0gcm9sbGFwcGx5KHR4LCB3aWR0aCA9IDMsIEZVTiA9IG1pbiwgZmlsbCA9IE5BLCBhbGlnbiA9ICdsZWZ0JykKICAKICBtZXNzYWdlKHJ1bi50aW1lKCksIGNpdHksICc6IGZpbGxpbmcgaW4gbWlzc2luZyAzZG10IHZhbHVlcycpCiAgCiAgIyB3aGljaCB2YWx1ZXMgYXJlIG1pc3Npbmc/IChleGNlcHQgZm9yIHRoZSBlZGdlcyB0aGF0IGNhbid0IGJlIGRvbmUpCiAgbWlzc2luZy52YWxzID0gd2hpY2goaXMubmEodGhyZWVkbXQpKQogIG1pc3NpbmcudmFscyA9CiAgICBtaXNzaW5nLnZhbHNbISBtaXNzaW5nLnZhbHMgJWluJSAobGVuZ3RoKHR4KSAtIDEpOmxlbmd0aCh0eCldCiAgCiAgIyBmaWxsIG1pc3NpbmcgZGF0YSBpbiBtYW51YWxseQogIGZvciAoaSBpbiBtaXNzaW5nLnZhbHMpCiAgewogICAgIyBnZXQgcm9sbGluZyB0eCB3aW5kb3cKICAgIHR4aSA9IHR4W2k6KGkgKyAyKV0KICAgIAogICAgIyBjYWxjIDNkbXQgaWYgdGhlcmUncyBlbm91Z2ggZGF0YQogICAgaWYgKGxlbmd0aCh3aGljaChpcy5uYSh0eGkpKSkgPD0gMSkKICAgICAgdGhyZWVkbXRbaV0gPSBtaW4odHhpLCBuYS5ybSA9IFRSVUUpCiAgfQogIHJldHVybih0aHJlZWRtdCkKfQoKIyB0b2RheSdzIGRhdCBpcyB0aGUgbWVhbiBvZiB0eCB0b2RheSBhbmQgdG4gdG9tb3Jyb3cuCiMgdGhyZWVkYXQgaXMgdGhlIG1lYW4gb2YgZGF0IGZvciB0b2RheSArIG5leHQgdHdvIGRheXMKdGhyZWVkYXQgPC0gZnVuY3Rpb24odHgsIHRuKQp7CiAgbWVzc2FnZShydW4udGltZSgpLCBjaXR5LCAnOiBjYWxjdWxhdGluZyB0aHJlZWRhdCcpCiAgIyBkbyB0aGUgaW5pdGlhbCB3b3JrIHF1aWNrbHkgd2l0aCBmaWx0ZXIoKQogIHRocmVlZGF0ID0KICAgIHJvd01lYW5zKGNiaW5kKAogICAgICBzdGF0czo6ZmlsdGVyKHR4LCBjKHJlcCgxLzMsIDMpLCByZXAoMCwgMikpLCBtZXRob2QgPSAnY29udm9sdXRpb24nLCBzaWRlcyA9IDIsIGNpcmN1bGFyID0gRkFMU0UpLAogICAgICBzdGF0czo6ZmlsdGVyKHRuLCBjKHJlcCgxLzMsIDMpLCByZXAoMCwgNCkpLCBtZXRob2QgPSAnY29udm9sdXRpb24nLCBzaWRlcyA9IDIsIGNpcmN1bGFyID0gRkFMU0UpKSwKICAgICAgbmEucm0gPSBUUlVFKQogIAogIG1lc3NhZ2UocnVuLnRpbWUoKSwgY2l0eSwgJzogZmlsbGluZyBpbiBtaXNzaW5nIDNkYXQgdmFsdWVzJykKICAKICAjIHdoaWNoIHZhbHVlcyBhcmUgbWlzc2luZz8gKGV4Y2VwdCBmb3IgdGhlIGVkZ2VzIHRoYXQgY2FuJ3QgYmUgZG9uZSkKICBtaXNzaW5nLnZhbHMgPSB3aGljaChpcy5uYSh0aHJlZWRhdCkpCiAgbWlzc2luZy52YWxzID0KICAgIG1pc3NpbmcudmFsc1shIG1pc3NpbmcudmFscyAlaW4lIChsZW5ndGgodHgpIC0gMik6bGVuZ3RoKHR4KV0KICAKICAjIGZpbGwgbWlzc2luZyBkYXRhIGluIG1hbnVhbGx5CiAgZm9yIChpIGluIG1pc3NpbmcudmFscykKICB7CiAgICAjIGdldCByb2xsaW5nIHR4LCB0biB3aW5kb3dzIAogICAgdHhpID0gdHhbaTooaSArIDIpXQogICAgdG5pID0gdG5bKGkgKyAxKTooaSArIDMpXQogICAgCiAgICAjIGNhbCBpZiB0aGVyZSdzIGVub3VnaCBkYXRhCiAgICBpZiAobGVuZ3RoKHdoaWNoKGlzLm5hKHR4aSkpKSA8PSAxICYmCiAgICAgICAgbGVuZ3RoKHdoaWNoKGlzLm5hKHRuaSkpKSA8PSAxKQogICAgICB0aHJlZWRhdFtpXSA9IG1lYW4oYygKICAgICAgICBtZWFuKHR4aSwgbmEucm0gPSBUUlVFKSwKICAgICAgICBtZWFuKHRuaSwgbmEucm0gPSBUUlVFKSksCiAgICAgICAgbmEucm0gPSBUUlVFKQogIH0KICByZXR1cm4odGhyZWVkYXQpCn0KCiMgcmV0dXJucyBhIHZlY3RvciBsYWdnZWQgYnkgbiBlbGVtZW50cyAobGFzdCBuIGVsZW1lbnRzIGFyZSBsb3N0KQojIHVzZSBhIG5lZ2F0aXZlIG4gdG8gYnJpbmcgdGhlIHNlcmllcyBmb3J3YXJkCmxhZyA8LSBmdW5jdGlvbih4LCBuKQp7CiAgaWYgKG4gPT0gMCkgCiAgewogICAgcmV0dXJuKHgpCiAgfSBlbHNlIGlmIChuID4gMCkKICB7CiAgICByZXR1cm4oYyhyZXAoTkEsIG4pLCB4WzE6KGxlbmd0aCh4KSAtIG4pXSkpCiAgfSBlbHNlIGlmIChuIDwgMCkKICB7CiAgICAjIHRvZG8KICAgICN4ID0gLXgKICAgICNyZXR1cm4oYygpKQogIH0KICAKfQoKYGBgCgoKYGBge3J9CiMgVEF2ZyBmcm9tIDE5NzEtMjAwMCAoMzAgWWVhciBQZXJpb2QpCmxpYnJhcnkocm5vYWEpCmlkID0gIjBCMzdKTU0zcDJhTFBSWGxVYjFOcVpXdElTalEiClRlbXBfQVZHIDwtIHJlYWQuY3N2KHNwcmludGYoImh0dHBzOi8vZG9jcy5nb29nbGUuY29tL3VjP2lkPSVzJmV4cG9ydD1kb3dubG9hZCIsIGlkKSkgClRfOTU8LXF1YW50aWxlKFRlbXBfQVZHJHZhbHVlLGMoLjk1KSkKCnRpbWVzZXJpZXMkVDk1PC1UXzk1CnRpbWVzZXJpZXMkRUhGPC1laGYodGltZXNlcmllcyRUTUFYLHRpbWVzZXJpZXMkVE1JTix0aW1lc2VyaWVzJFQ5NSkKdGltZXNlcmllcwpgYGAKCmBgYHtyfQojIFRhc2sgMy4xCiMgUXVlc3Rpb24gMgojIyMgUmVsYXRpb25zaGlwIEJldHdlZW4gSGVhdHdhdmUgYW5kIHRoZSBUaW1lIHBlcmlvZCBnaXZlbgoKbW9kZWxfZ2FtNCA8LSBnYW0oIEVIRiB+cyhhcy5udW1lcmljKERhdGUpKSwgZGF0YSA9IHRpbWVzZXJpZXMpIApwbG90TW9kZWwobW9kZWxfZ2FtNCkKYGBgCmBgYHtyfQojIEV4YW1pbmluZyB0aGUgcmVsYXRpb25zaGlwIEJldHdlZW4gRUhGIGFuZCBUb3RhbCBBdHRlbmRhbmNlIApsaWJyYXJ5KGdncGxvdDIpCmdncGxvdCh0aW1lc2VyaWVzLCBhZXMoRUhGLFRvdGFsX0F0dGVuZGFuY2VzKSkgKyAKICBnZW9tX2FibGluZShkYXRhID0gbW9kZWxzLCBhbHBoYSA9IDEvNCkgKwogIGdlb21fcG9pbnQoKSAKYGBgCgoKYGBge3J9CiMgVGFzayAzLjEKIyMgRml0dGluZyBFSEYgYXMgYW4gYWRkaXRpb25hbCBQcmVkaWN0b3IKdGltZXNlcmllcyR3a2RheTwtd2Vla2x5JHdrZGF5CnRpbWVzZXJpZXMkZGF0ZV9uPC13ZWVrbHkkZGF0ZV9uCm1vZGVsX2dhbTYgPC0gZ2FtKCBUb3RhbF9BdHRlbmRhbmNlcyB+IHMoZGF0ZV9uKSArIHdrZGF5ICsgRUhGLCBkYXRhID0gdGltZXNlcmllcykgCnBsb3RNb2RlbChtb2RlbF9nYW02KQoKYGBgCgpgYGB7cn0KI0NvbXBhcmluZyBBSUMKQUlDKG1vZGVsX2dhbTYsIG1vZGVsX2dhbTIpCmBgYAoKCgpBZGQgYSBuZXcgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpJbnNlcnQgQ2h1bmsqIGJ1dHRvbiBvbiB0aGUgdG9vbGJhciBvciBieSBwcmVzc2luZyAqQ21kK09wdGlvbitJKi4KCldoZW4geW91IHNhdmUgdGhlIG5vdGVib29rLCBhbiBIVE1MIGZpbGUgY29udGFpbmluZyB0aGUgY29kZSBhbmQgb3V0cHV0IHdpbGwgYmUgc2F2ZWQgYWxvbmdzaWRlIGl0IChjbGljayB0aGUgKlByZXZpZXcqIGJ1dHRvbiBvciBwcmVzcyAqQ21kK1NoaWZ0K0sqIHRvIHByZXZpZXcgdGhlIEhUTUwgZmlsZSkuCg==</div>
+
+
+
+</div>
+
+
+
+
+
+
+
+
+<script type="text/javascript" src="/d2l/common/math/MathML.js?v=10.6.12.5941-197 "></script><script type="text/javascript">document.addEventListener('DOMContentLoaded', function() { D2LMathML.DesktopInit('https://s.brightspace.com/lib/mathjax/2.6.1/MathJax.js?config=MML_HTMLorMML','https://s.brightspace.com/lib/mathjax/2.6.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML'); });</script></body></html>
