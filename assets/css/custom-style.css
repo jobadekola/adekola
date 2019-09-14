@@ -654,7 +654,7 @@ hr
 
 .portfolio .label
 {
-    position: absolute;
+    position: relative;
     width: 100%;
     height: 40px;
     bottom: -40px;
